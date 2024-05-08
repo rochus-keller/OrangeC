@@ -6,6 +6,8 @@
 #include "SharedMemory.h"
 #include "ilunstream.h"
 #include "ioptimizer.h"
+#include "ildata.h"
+#include "iout.h"
 using namespace Optimizer;
 
 static const int MAX_SHARED_REGION = 500 * 1024 * 1024;
@@ -67,6 +69,25 @@ int main(int argc, char *argv[])
         Utils::Fatal("cannot open input file");
     }
     if (!LoadFile(parserMem))
+    {
         Utils::Fatal("internal error: could not load intermediate file");
+        return -1;
+    }
+    if (WriteIcdFile.GetValue())
+    {
+        char realOutFile[260];
+        strcpy(realOutFile, files[1].c_str());
+        Utils::StripExt(realOutFile);
+        Utils::AddExt(realOutFile, "_.icd");
+        Optimizer::icdFile = fopen(realOutFile, "w");
+        if (!Optimizer::icdFile)
+        {
+            Utils::Fatal("Cannot open '%s' for write", realOutFile);
+            return -1;
+        }
+        setvbuf(Optimizer::icdFile, 0, _IOFBF, 32768);
+        Optimizer::OutputIcdFile();
+    }
+
     return 0;
 }
