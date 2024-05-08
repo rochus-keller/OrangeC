@@ -291,6 +291,48 @@ let orangeopt : Executable {
      ]
 }
 
+let eigen* : Executable {
+    .configs += [ config config2 ]
+    .sources += [
+        ./src/eigen/main.cpp
+        ./src/occopt/ilunstream.cpp
+        ./src/occopt/ilunstream.h
+        ./src/occopt/ilocal.cpp
+        ./src/occopt/ilocal.h
+
+        # commons:
+        ./src/util/CmdFiles.cpp
+        ./src/util/CmdSwitch.cpp
+        ./src/util/SharedMemory.cpp
+        ./src/util/ToolChain.cpp
+        ./src/util/Utils.cpp
+        ./src/util/Random.cpp
+
+        ./src/occopt/iblock.cpp
+        ./src/occopt/iblock.h
+        ./src/occopt/ildata.cpp
+        ./src/occopt/ildata.h
+        ./src/occopt/memory.cpp
+        ./src/occopt/memory.h
+        ./src/occopt/OptUtils.cpp
+        ./src/occopt/OptUtils.h
+        ./src/occopt/symfuncs.cpp
+        ./src/occopt/symfuncs.h
+        ./src/occopt/config.cpp
+        ./src/occopt/config.h
+        ./src/occopt/ifloatconv.cpp
+        ./src/occopt/ifloatconv.h
+        ./src/occopt/output.cpp
+        ./src/occopt/output.h
+        ./src/occopt/configx86.cpp
+        ./src/occopt/configx86.h
+
+        ./src/ocpp/Floating.cpp
+        ./src/ocpp/Floating.h
+
+    ]
+}
+
 let all ! : Group {
-    .deps += [ orangefront orangeopt ]
+    .deps += [ orangefront orangeopt eigen ]
 }
