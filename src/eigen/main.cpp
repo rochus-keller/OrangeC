@@ -8,17 +8,21 @@
 #include "ioptimizer.h"
 #include "ildata.h"
 #include "iout.h"
+#include "allout.h"
+#include <fstream>
 using namespace Optimizer;
 
 static const int MAX_SHARED_REGION = 500 * 1024 * 1024;
 
 CmdSwitchParser SwitchParser;
 CmdSwitchBool WriteIcdFile(SwitchParser, 'Y', false);
+CmdSwitchBool WriteDumpFile(SwitchParser, 'D', false);
 
 const char* helpText =
     "[options] inputfile\n"
     "\n"
-    "-Y output icd file\n";
+    "-Y output icd file\n"
+    "-D output dump file\n";
 
 const char* usageText = "[options] inputfile";
 
@@ -73,9 +77,9 @@ int main(int argc, char *argv[])
         Utils::Fatal("internal error: could not load intermediate file");
         return -1;
     }
+    char realOutFile[260];
     if (WriteIcdFile.GetValue())
     {
-        char realOutFile[260];
         strcpy(realOutFile, files[1].c_str());
         Utils::StripExt(realOutFile);
         Utils::AddExt(realOutFile, "_.icd");
@@ -87,6 +91,22 @@ int main(int argc, char *argv[])
         }
         setvbuf(Optimizer::icdFile, 0, _IOFBF, 32768);
         Optimizer::OutputIcdFile();
+    }
+    if (WriteDumpFile.GetValue())
+    {
+        strcpy(realOutFile, files[1].c_str());
+        Utils::StripExt(realOutFile);
+        Utils::AddExt(realOutFile, ".txt");
+        std::ofstream out(realOutFile, std::ios_base::out);
+        if (!out)
+        {
+            Utils::Fatal("Cannot open '%s' for write", realOutFile);
+            return -1;
+        }else
+        {
+            DumpIntermediate(out);
+        }
+
     }
 
     return 0;

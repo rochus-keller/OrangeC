@@ -295,6 +295,8 @@ let eigen* : Executable {
     .configs += [ config config2 ]
     .sources += [
         ./src/eigen/main.cpp
+        ./src/eigen/allout.cpp
+        ./src/eigen/allout.h
         ./src/occopt/ilunstream.cpp
         ./src/occopt/ilunstream.h
         ./src/occopt/ilocal.cpp
