@@ -174,7 +174,7 @@ int CmdSwitchDefine::Parse(const char* data)
     {
         return -1;
     }
-    std::unique_ptr<define> newDefine(new define() );
+    std::unique_ptr<define> newDefine(new define());
     newDefine->name = name;
     if (*data == '=')
     {
@@ -212,7 +212,7 @@ int CmdSwitchFile::Parse(const char* data)
         in.seekg(0, std::ios::end);
         size_t size = in.tellg();
         in.seekg(0, std::ios::beg);
-        std::unique_ptr<char[]> data1( new char[size + 1] );
+        std::unique_ptr<char[]> data1(new char[size + 1]);
         memset(data1.get(), 0, size + 1);
         in.read(data1.get(), size);
         data1[size] = 0;

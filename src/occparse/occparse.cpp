@@ -119,10 +119,13 @@ void* operator new(size_t aa)
     {
         // If malloc fails and there is a new_handler,
         // call it to try free up memory.
+
+#if __GNUC__ > 4
         std::new_handler nh = std::get_new_handler();
         if (nh)
             nh();
         else
+#endif
             throw std::bad_alloc();
     }
     rv->size = bb;
@@ -724,6 +727,20 @@ int main(int argc, char* argv[])
                     fclose(fil);
                 }
                 Optimizer::InitIntermediate();
+#ifdef ORANGE_COMPILE_SINGLE_ICF_FILE
+                if (compileToFile)
+                {
+                    // compile to file
+                    Utils::StripExt(buffer);
+                    Utils::AddExt(buffer, ".icf");
+                    int size = Optimizer::GetOutputSize();
+                    FILE* fil = fopen(buffer, "wb");
+                    if (!fil)
+                        Utils::Fatal("Cannot open '%s' for write", buffer);
+                    Optimizer::WriteMappingFile(parserMem, fil);
+                    fclose(fil);
+                }
+#endif
             }
         }
         else
@@ -820,7 +837,24 @@ int main(int argc, char* argv[])
             }
 #endif
     }
-
+#ifndef ORANGE_COMPILE_SINGLE_ICF_FILE
+    if (compileToFile)
+    {
+        // compile to file
+        if (Optimizer::outputFileName.empty())
+            strcpy(realOutFile, firstFile);
+        else
+            strcpy(realOutFile, Optimizer::outputFileName.c_str());
+        Utils::StripExt(realOutFile);
+        Utils::AddExt(realOutFile, ".icf");
+        int size = Optimizer::GetOutputSize();
+        FILE* fil = fopen(realOutFile, "wb");
+        if (!fil)
+            Utils::Fatal("Cannot open '%s' for write", realOutFile);
+        Optimizer::WriteMappingFile(parserMem, fil);
+        fclose(fil);
+    }
+#endif
     oFree();
     globalFree();
     delete parserMem;

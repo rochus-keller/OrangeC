@@ -320,7 +320,7 @@ FILE* Utils::TempName(std::string& name)
 void Utils::AddExt(char* buffer, const char* ext)
 {
     char* pos = (char*)strrchr(buffer, '.');
-    if (!pos || strcmp(pos,ext) != 0 )
+    if (!pos || strcmp(pos,ext) != 0)
         strcat(buffer, ext);
 }
 
