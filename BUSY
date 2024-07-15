@@ -297,6 +297,7 @@ let eigen* : Executable {
         ./src/eigen/main.cpp
         ./src/eigen/allout.cpp
         ./src/eigen/allout.h
+        ./src/eigen/eigenout.cpp
         ./src/occopt/ilunstream.cpp
         ./src/occopt/ilunstream.h
         ./src/occopt/ilocal.cpp

@@ -10,18 +10,25 @@
 #include "iout.h"
 #include "allout.h"
 #include <fstream>
+namespace Optimizer {
+void OutputEigenFile();
+}
+
 using namespace Optimizer;
+
 
 static const int MAX_SHARED_REGION = 500 * 1024 * 1024;
 
 CmdSwitchParser SwitchParser;
 CmdSwitchBool WriteIcdFile(SwitchParser, 'Y', false);
 CmdSwitchBool WriteDumpFile(SwitchParser, 'D', false);
+CmdSwitchBool WriteEigenFile(SwitchParser, 'E', false);
 
 const char* helpText =
     "[options] inputfile\n"
     "\n"
     "-Y output icd file\n"
+    "-E output cod file\n"
     "-D output dump file\n";
 
 const char* usageText = "[options] inputfile";
@@ -91,6 +98,20 @@ int main(int argc, char *argv[])
         }
         setvbuf(Optimizer::icdFile, 0, _IOFBF, 32768);
         Optimizer::OutputIcdFile();
+    }
+    if (WriteEigenFile.GetValue())
+    {
+        strcpy(realOutFile, files[1].c_str());
+        Utils::StripExt(realOutFile);
+        Utils::AddExt(realOutFile, ".cod");
+        Optimizer::icdFile = fopen(realOutFile, "w");
+        if (!Optimizer::icdFile)
+        {
+            Utils::Fatal("Cannot open '%s' for write", realOutFile);
+            return -1;
+        }
+        setvbuf(Optimizer::icdFile, 0, _IOFBF, 32768);
+        Optimizer::OutputEigenFile();
     }
     if (WriteDumpFile.GetValue())
     {

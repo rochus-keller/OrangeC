@@ -491,8 +491,8 @@ static void StreamExpression(SimpleExpression* exp)
             StreamIndex(exp->sp->i);
             StreamIndex(exp->sp->tp->size);
             StreamIndex(exp->sp->tp->sizeFromType);
-            break;
 #endif
+            break;
         case Optimizer::se_msil_array_access:
             StreamType(exp->msilArrayTP);
             break;
@@ -692,7 +692,7 @@ static const char* opnames[] = {
 
 static void StreamInstruction(QUAD* q)
 {
-    out() << "INSTR " << opnames[q->dc.opcode] << " ";
+    out() << opnames[q->dc.opcode] << " ";
 
     if (q->dc.opcode == i_passthrough)
     {
@@ -1125,7 +1125,10 @@ static void StreamFunc(FunctionData* fd)
         out() << "BEGIN:" << std::endl;
         level++;
         StreamInstructions(fd->instructionList);
-        level -= 2;
+        level--;
+        ws();
+        out() << "END:" << std::endl;
+        level--;
     }
     //StreamTemps();
     //StreamLoadCache(fd->loadHash);

@@ -41,7 +41,6 @@
 #include "ilazy.h"
 #include "iflow.h"
 #include "optmain.h"
-#include "iout.h"
 #include "ioptutil.h"
 #include "output.h"
 #include "ilocal.h"
@@ -57,24 +56,15 @@ static int virtual_mode;
 static int newlabel;
 static bool virtualMode;
 
-void putamode(Optimizer::QUAD* q, Optimizer::IMODE* ap);
+static void putamode(Optimizer::QUAD* q, Optimizer::IMODE* ap);
 void nl(void);
 void xstringseg(void);
 
-/* Init module */
-void ioutini(void)
-{
-    gentype = nogen;
-    curseg = noseg;
-    outcol = 0;
-    virtual_mode = 0;
-    newlabel = false;
-    //    strtab = nullptr;
-}
+
 static void iop_nop(Optimizer::QUAD* q)
 {
     (void)q;
-    oprintf(icdFile, "\tNOP");
+    oprintf(icdFile, "  NOP");
 }
 static void iop_phi(Optimizer::QUAD* q)
 {
@@ -82,9 +72,9 @@ static void iop_phi(Optimizer::QUAD* q)
     struct _phiblock* pb = phi->temps;
     //    Optimizer::SimpleExpression* enode = tempInfo[phi->T0]->enode;
     //    if (enode->right)
-    //        oprintf(icdFile, "\tT%d[%s] = PHI(", phi->T0, ((Optimizer::SimpleSymbol*)(enode->right))->name);
+    //        oprintf(icdFile, "  T%d[%s] = PHI(", phi->T0, ((Optimizer::SimpleSymbol*)(enode->right))->name);
     //    else
-    oprintf(icdFile, "\tT%d = PHI(", phi->T0);
+    oprintf(icdFile, "  T%d = PHI(", phi->T0);
     while (pb)
     {
         oprintf(icdFile, "T%d(%d),", pb->Tn, pb->block->blocknum + 1);
@@ -100,7 +90,7 @@ static void iop_line(Optimizer::QUAD* q)
     if (cparams.prm_lines)
     {
         auto ld = (LINEDATA*)q->dc.left;
-        oprintf(icdFile, "; Line %d:\t%s\n", ld->lineno, ld->line);
+        oprintf(icdFile, "  ; Line %d:  %s\n", ld->lineno, ld->line);
     }
 }
 
@@ -108,13 +98,12 @@ static void iop_line(Optimizer::QUAD* q)
 
 static void iop_passthrough(Optimizer::QUAD* q) { oprintf(icdFile, "PASSTHROUGH\n"); }
 static void iop_datapassthrough(Optimizer::QUAD* q) { oprintf(icdFile, "ASM DATA\n"); }
-static void iop_skipcompare(Optimizer::QUAD* q) { oprintf(icdFile, "\tskipcompare %d\n", q->dc.v.label); }
+static void iop_skipcompare(Optimizer::QUAD* q) { oprintf(icdFile, "  skipcompare %d\n", q->dc.v.label); }
 /*-------------------------------------------------------------------------*/
 
 static void iop_label(Optimizer::QUAD* q)
 {
-    nl();
-    oprintf(icdFile, "L_%d:", q->dc.v.label);
+    oprintf(icdFile, "L_%d:\n", q->dc.v.label);
     gentype = nogen;
 }
 
@@ -122,20 +111,20 @@ static void iop_label(Optimizer::QUAD* q)
 
 static void putsingle(Optimizer::QUAD* q, Optimizer::IMODE* ap, const char* string)
 {
-    oprintf(icdFile, "\t%s", string);
+    oprintf(icdFile, "  %s", string);
     if (ap)
     {
-        oputc('\t', icdFile);
+        oputc('  ', icdFile);
         putamode(q, ap);
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
-static void iop_asmgoto(Optimizer::QUAD* q) { oprintf(icdFile, "\tASMGOTO\tL_%d:PC", q->dc.v.label); }
+static void iop_asmgoto(Optimizer::QUAD* q) { oprintf(icdFile, "  ASMGOTO  L_%d:PC", q->dc.v.label); }
 /*-------------------------------------------------------------------------*/
 
-static void iop_goto(Optimizer::QUAD* q) { oprintf(icdFile, "\tGOTO\tL_%d:PC", q->dc.v.label); }
+static void iop_goto(Optimizer::QUAD* q) { oprintf(icdFile, "  GOTO  L_%d:PC", q->dc.v.label); }
 static void iop_computedgoto(Optimizer::QUAD* q) { putsingle(q, q->dc.left, "GOTO"); }
 
 /*-------------------------------------------------------------------------*/
@@ -155,7 +144,7 @@ static void iop_int(Optimizer::QUAD* q) { putsingle(q, q->dc.left, "INT"); }
 
 static void iop_ret(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tRET\t");
+    oprintf(icdFile, "  RET  ");
     putamode(q, q->dc.left);
 }
 
@@ -163,19 +152,19 @@ static void iop_ret(Optimizer::QUAD* q)
 
 static void iop_fret(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tFRET\t");
+    oprintf(icdFile, "  FRET  ");
     putamode(q, q->dc.left);
 }
 
 /*-------------------------------------------------------------------------*/
 
-static void iop_rett(Optimizer::QUAD* q) { oprintf(icdFile, "\tRETT\n"); }
+static void iop_rett(Optimizer::QUAD* q) { oprintf(icdFile, "  RETT\n"); }
 
 /*-------------------------------------------------------------------------*/
 
 static void putbin(Optimizer::QUAD* q, const char* str)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " = ");
     putamode(q, q->dc.left);
@@ -244,7 +233,7 @@ static void iop_eor(Optimizer::QUAD* q) { putbin(q, "^"); }
 
 static void putunary(Optimizer::QUAD* q, const char* str)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     if (q->atomic)
         oprintf(icdFile, " Atomic= ");
@@ -258,7 +247,7 @@ static void putunary(Optimizer::QUAD* q, const char* str)
 
 static void putasunary(Optimizer::QUAD* q, const char* str)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     if (q->ans)
         putamode(q, q->ans);
     oprintf(icdFile, " %s ", str);
@@ -285,7 +274,7 @@ static void iop_genword(Optimizer::QUAD* q) { putsingle(q, q->dc.left, "genword"
 
 static void iop_coswitch(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tCOSWITCH(");
+    oprintf(icdFile, "  COSWITCH(");
     putamode(q, q->dc.left);
     oputc(',', icdFile);
     putamode(q, q->ans);
@@ -296,7 +285,7 @@ static void iop_coswitch(Optimizer::QUAD* q)
 }
 static void iop_swbranch(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tSWBRANCH(");
+    oprintf(icdFile, "  SWBRANCH(");
     putamode(q, q->dc.left);
     oputc(',', icdFile);
     oprintf(icdFile, "L_%d:PC)", q->dc.v.label);
@@ -306,7 +295,7 @@ static void iop_swbranch(Optimizer::QUAD* q)
 
 static void iop_array(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " = ");
     oprintf(icdFile, " ARRAY ");
@@ -319,7 +308,7 @@ static void iop_array(Optimizer::QUAD* q)
 
 static void iop_arrayindex(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " = ");
     oprintf(icdFile, " ARRIND ");
@@ -331,7 +320,7 @@ static void iop_arrayindex(Optimizer::QUAD* q)
 
 static void iop_arraylsh(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " = ");
     oprintf(icdFile, " ARR<< ");
@@ -341,7 +330,7 @@ static void iop_arraylsh(Optimizer::QUAD* q)
 }
 static void iop_struct(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " = ");
     oprintf(icdFile, " STRUCT ");
@@ -353,7 +342,7 @@ static void iop_struct(Optimizer::QUAD* q)
 
 static void iop_assnblock(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->dc.left);
     oprintf(icdFile, " Block= ");
     putamode(q, q->dc.right);
@@ -366,7 +355,7 @@ static void iop_assnblock(Optimizer::QUAD* q)
 
 static void iop_clrblock(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->dc.left);
     oprintf(icdFile, " BLKCLR ");
     oprintf(icdFile, "(");
@@ -375,7 +364,7 @@ static void iop_clrblock(Optimizer::QUAD* q)
 }
 static void iop_cmpblock(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     oprintf(icdFile, " BLKCOMPARE:L_%d:PC, ", q->dc.v.label);
     putamode(q, q->dc.left);
     oprintf(icdFile, " != ");
@@ -383,35 +372,35 @@ static void iop_cmpblock(Optimizer::QUAD* q)
 }
 static void iop_initblk(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     oprintf(icdFile, "initblk");
 }
 static void iop_cpblk(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     oprintf(icdFile, "cpblk");
 }
 static void iop_initobj(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     oprintf(icdFile, "INITOBJ ");
     putamode(q, q->dc.left);
 }
 static void iop_sizeof(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " = SIZEOF ");
     putamode(q, q->dc.left);
 }
 /*-------------------------------------------------------------------------*/
 
-static void iop_asmcond(Optimizer::QUAD* q) { oprintf(icdFile, "\tASMCOND\tL_%d:PC", q->dc.v.label); }
+static void iop_asmcond(Optimizer::QUAD* q) { oprintf(icdFile, "  ASMCOND  L_%d:PC", q->dc.v.label); }
 /*-------------------------------------------------------------------------*/
 
 static void putjmp(Optimizer::QUAD* q, const char* str)
 {
-    oprintf(icdFile, "\tCONDGO\tL_%d:PC ; ", q->dc.v.label);
+    oprintf(icdFile, "  CONDGO  L_%d:PC ; ", q->dc.v.label);
     if (q->dc.left)
         putamode(q, q->dc.left);
     oprintf(icdFile, " %s ", str);
@@ -423,7 +412,7 @@ static void putjmp(Optimizer::QUAD* q, const char* str)
 
 static void putset(Optimizer::QUAD* q, const char* str)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " = ");
     putamode(q, q->dc.left);
@@ -518,7 +507,7 @@ static void iop_parm(Optimizer::QUAD* q)
     // for fastcall, the moves generated before the push are sufficient.
     if (q->fastcall)
         return;
-    oprintf(icdFile, "\tPARM\t");
+    oprintf(icdFile, "  PARM  ");
     putamode(q, q->dc.left);
 }
 
@@ -526,7 +515,7 @@ static void iop_parm(Optimizer::QUAD* q)
 
 static void iop_parmadj(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tPARMADJ\t");
+    oprintf(icdFile, "  PARMADJ  ");
     putamode(q, q->dc.left);
 }
 
@@ -534,7 +523,7 @@ static void iop_parmadj(Optimizer::QUAD* q)
 
 static void iop_parmblock(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tPARMBLOCK");
+    oprintf(icdFile, "  PARMBLOCK");
     putamode(q, q->dc.left);
     oputc(',', icdFile);
     putamode(q, q->dc.right);
@@ -542,39 +531,30 @@ static void iop_parmblock(Optimizer::QUAD* q)
 
 /*-------------------------------------------------------------------------*/
 
-static void iop_cppini(Optimizer::QUAD* q) { oprintf(icdFile, "\tCPPINI"); }
+static void iop_cppini(Optimizer::QUAD* q) { oprintf(icdFile, "  CPPINI"); }
 
 /*-------------------------------------------------------------------------*/
-static void iop_dbgblock(Optimizer::QUAD* q) { oprintf(icdFile, "\tDBG Block START"); }
+static void iop_dbgblock(Optimizer::QUAD* q) {
+    //oprintf(icdFile, "  DBG Block START");
+}
 
 /*-------------------------------------------------------------------------*/
 
-static void iop_dbgblockend(Optimizer::QUAD* q) { oprintf(icdFile, "\tDBG Block END"); }
-static void iop_block(Optimizer::QUAD* q) { oprintf(icdFile, "\tBLOCK %d", q->dc.v.label + 1); }
+static void iop_dbgblockend(Optimizer::QUAD* q) {
+    //oprintf(icdFile, "  DBG Block END");
+}
+static void iop_block(Optimizer::QUAD* q) {
+    //oprintf(icdFile, "  BLOCK %d", q->dc.v.label + 1);
+}
 
 /*-------------------------------------------------------------------------*/
 
 static void iop_blockend(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tBLOCK END");
-    /*
-    if (q->dc.v.data)
-    {
-        int i, j;
-        BITINT* p;
-        oprintf(icdFile, "\n;\tLive: ");
-        p = (BITINT*)q->dc.v.data;
-
-        for (i = 0; i < (tempCount + BITINTBITS - 1) / BITINTBITS; i++, p++)
-            if (*p)
-                for (j = 0; j < BITINTBITS; j++)
-                    if ((*p) & (1 << j))
-                        oprintf(icdFile, "TEMP%d, ", i * BITINTBITS + j);
-    }
-    */
+    //oprintf(icdFile, "  BLOCK END");
 }
 
-static void iop_varstart(Optimizer::QUAD* q) { oprintf(icdFile, "\tVAR START\t%s", q->dc.left->offset->sp->name); }
+static void iop_varstart(Optimizer::QUAD* q) { oprintf(icdFile, "  VAR START  %s", q->dc.left->offset->sp->name); }
 static void iop_func(Optimizer::QUAD* q) {}
 /*-------------------------------------------------------------------------*/
 
@@ -588,7 +568,7 @@ static void iop_livein(Optimizer::QUAD* q)
 
 static void iop_icon(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " C= #%llX", q->dc.v.i);
 }
@@ -597,26 +577,26 @@ static void iop_icon(Optimizer::QUAD* q)
 
 static void iop_fcon(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " C= #%s", ((std::string)q->dc.v.f).c_str());
 }
 static void iop_imcon(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " C= #%s", ((std::string)q->dc.v.f).c_str());
 }
 static void iop_cxcon(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
     oprintf(icdFile, " C= #%s + %s * I", ((std::string)q->dc.v.c.r).c_str(), ((std::string)q->dc.v.c.i).c_str());
 }
 static void iop_prologue(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tPROLOGUE");
-    oputc('\t', icdFile);
+    oprintf(icdFile, "  PROLOGUE");
+    oputc('  ', icdFile);
     if (!q->dc.left || !q->dc.right)
     {
         oprintf(icdFile, "unset");
@@ -630,8 +610,8 @@ static void iop_prologue(Optimizer::QUAD* q)
 }
 static void iop_epilogue(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tEPILOGUE");
-    oputc('\t', icdFile);
+    oprintf(icdFile, "  EPILOGUE");
+    oputc('  ', icdFile);
     if (!q->dc.left)
     {
         oprintf(icdFile, "unset");
@@ -643,8 +623,8 @@ static void iop_epilogue(Optimizer::QUAD* q)
 }
 static void iop_beginexcept(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tEXCBEGIN");
-    oputc('\t', icdFile);
+    oprintf(icdFile, "  EXCBEGIN");
+    oputc('  ', icdFile);
 
     putamode(q, q->dc.left);
     oputc(',', icdFile);
@@ -652,50 +632,50 @@ static void iop_beginexcept(Optimizer::QUAD* q)
 }
 static void iop_endexcept(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tEXCEND");
-    oputc('\t', icdFile);
+    oprintf(icdFile, "  EXCEND");
+    oputc('  ', icdFile);
 
     putamode(q, q->dc.left);
 }
-static void iop_pushcontext(Optimizer::QUAD* q) { oprintf(icdFile, "\tPUSHCONTEXT", q->dc.v.label); }
-static void iop_popcontext(Optimizer::QUAD* q) { oprintf(icdFile, "\tPOPCONTEXT", q->dc.v.label); }
-static void iop_loadcontext(Optimizer::QUAD* q) { oprintf(icdFile, "\tLOADCONTEXT", q->dc.v.label); }
-static void iop_unloadcontext(Optimizer::QUAD* q) { oprintf(icdFile, "\tUNLOADCONTEXT", q->dc.v.label); }
+static void iop_pushcontext(Optimizer::QUAD* q) { oprintf(icdFile, "  PUSHCONTEXT", q->dc.v.label); }
+static void iop_popcontext(Optimizer::QUAD* q) { oprintf(icdFile, "  POPCONTEXT", q->dc.v.label); }
+static void iop_loadcontext(Optimizer::QUAD* q) { oprintf(icdFile, "  LOADCONTEXT", q->dc.v.label); }
+static void iop_unloadcontext(Optimizer::QUAD* q) { oprintf(icdFile, "  UNLOADCONTEXT", q->dc.v.label); }
 static void iop_tryblock(Optimizer::QUAD* q) { (void)q; }
 static void iop_substack(Optimizer::QUAD* q) { putasunary(q, "STACKALLOC"); }
 static void iop_loadstack(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tLOADSTACK");
-    oputc('\t', icdFile);
+    oprintf(icdFile, "  LOADSTACK");
+    oputc('  ', icdFile);
     putamode(q, q->dc.left);
 }
 static void iop_savestack(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tSAVESTACK");
-    oputc('\t', icdFile);
+    oprintf(icdFile, "  SAVESTACK");
+    oputc('  ', icdFile);
     putamode(q, q->dc.left);
 }
-static void iop_functailstart(Optimizer::QUAD* q) { oprintf(icdFile, "\tTAILBEGIN"); }
-static void iop_functailend(Optimizer::QUAD* q) { oprintf(icdFile, "\tTAILEND"); }
-static void iop_gcsestub(Optimizer::QUAD* q) { oprintf(icdFile, "\tGCSE"); }
-static void iop_expressiontag(Optimizer::QUAD* q) { oprintf(icdFile, "\tEXPR TAG\t%d", q->dc.v.label); }
-static void iop_tag(Optimizer::QUAD* q) { oprintf(icdFile, "\tTAG"); }
-static void iop_seh(Optimizer::QUAD* q) { oprintf(icdFile, "\tSEH %d", q->sehMode); }
+static void iop_functailstart(Optimizer::QUAD* q) { oprintf(icdFile, "  TAILBEGIN"); }
+static void iop_functailend(Optimizer::QUAD* q) { oprintf(icdFile, "  TAILEND"); }
+static void iop_gcsestub(Optimizer::QUAD* q) { oprintf(icdFile, "  GCSE"); }
+static void iop_expressiontag(Optimizer::QUAD* q) { oprintf(icdFile, "  EXPR TAG  %d", q->dc.v.label); }
+static void iop_tag(Optimizer::QUAD* q) { oprintf(icdFile, "  TAG"); }
+static void iop_seh(Optimizer::QUAD* q) { oprintf(icdFile, "  SEH %d", q->sehMode); }
 static void iop_atomic_thread_fence(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tATOMIC THREAD FENCE");
+    oprintf(icdFile, "  ATOMIC THREAD FENCE");
     oputc(' ', icdFile);
     putamode(q, q->dc.left);
 }
 static void iop_atomic_signal_fence(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tATOMIC SIGNAL FENCE");
+    oprintf(icdFile, "  ATOMIC SIGNAL FENCE");
     oputc(' ', icdFile);
     putamode(q, q->dc.left);
 }
 static void iop_atomic_flag_fence(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     if (q->ans)
     {
         putamode(q, q->ans);
@@ -709,9 +689,9 @@ static void iop_atomic_flag_fence(Optimizer::QUAD* q)
 }
 static void iop_atomic_flag_test_and_set(Optimizer::QUAD* q)
 {
-    oputc('\t', icdFile);
+    oputc('  ', icdFile);
     putamode(q, q->ans);
-    oprintf(icdFile, "\t=ATOMIC TEST AND SET");
+    oprintf(icdFile, "  =ATOMIC TEST AND SET");
     oputc(' ', icdFile);
     putamode(q, q->dc.left);
     oputc(',', icdFile);
@@ -719,13 +699,13 @@ static void iop_atomic_flag_test_and_set(Optimizer::QUAD* q)
 }
 static void iop_atomic_flag_clear(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tATOMIC CLEAR");
+    oprintf(icdFile, "  ATOMIC CLEAR");
     oputc(' ', icdFile);
     putamode(q, q->dc.left);
 }
 static void iop_cmpxchgweak(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tCMPXCHGWEAK\t");
+    oprintf(icdFile, "  CMPXCHGWEAK  ");
     putamode(q, q->ans);
     oputc(',', icdFile);
     putamode(q, q->dc.left);
@@ -734,7 +714,7 @@ static void iop_cmpxchgweak(Optimizer::QUAD* q)
 }
 static void iop_cmpxchgstrong(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tCMPXCHGSTRONG\t");
+    oprintf(icdFile, "  CMPXCHGSTRONG  ");
     putamode(q, q->ans);
     oputc(',', icdFile);
     putamode(q, q->dc.left);
@@ -743,13 +723,13 @@ static void iop_cmpxchgstrong(Optimizer::QUAD* q)
 }
 static void iop_kill_dependency(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tKILLDEPENDENCY\t");
+    oprintf(icdFile, "  KILLDEPENDENCY  ");
     putamode(q, q->dc.left);
 }
 
 static void iop_xchg(Optimizer::QUAD* q)
 {
-    oprintf(icdFile, "\tXCHG\t");
+    oprintf(icdFile, "  XCHG  ");
     putamode(q, q->ans);
     oputc(',', icdFile);
     putamode(q, q->dc.left);
@@ -878,7 +858,14 @@ static void (*oplst[])(Optimizer::QUAD* q) = {
 
 /*-------------------------------------------------------------------------*/
 
-void putconst(Optimizer::SimpleExpression* offset, int color)
+static const char* lookupRegName(int regnum)
+{
+    if (regnum < Optimizer::chosenAssembler->arch->registerCount)
+        return Optimizer::chosenAssembler->arch->regNames[regnum].name;
+    return "???";
+}
+
+static void putconst(Optimizer::SimpleExpression* offset, int color)
 /*
  *      put a constant to the icdFile file.
  */
@@ -971,7 +958,7 @@ void putconst(Optimizer::SimpleExpression* offset, int color)
 
 /*-------------------------------------------------------------------------*/
 
-void putlen(int l)
+static void putlen(int l)
 /*
  *      append the length field to a value
  */
@@ -1084,7 +1071,7 @@ void putlen(int l)
 
 /*-------------------------------------------------------------------------*/
 
-void putamode(Optimizer::QUAD* q, Optimizer::IMODE* ap)
+static void putamode(Optimizer::QUAD* q, Optimizer::IMODE* ap)
 /*
  *      output a general addressing mode.
  */
@@ -1175,7 +1162,7 @@ static void put_diagnostics(Optimizer::QUAD* q)
     }
 }
 /*-------------------------------------------------------------------------*/
-void put_code(Optimizer::QUAD* q)
+static void put_code(Optimizer::QUAD* q)
 /*
  *      output a generic instruction.
  */
@@ -1223,26 +1210,12 @@ static void PutComplex(const char* sz, FPF& r, FPF& i)
 }
 static void PutData(BaseData* data)
 {
-    static std::vector<std::string> segs = {"exitseg", "codeseg",     "dataseg",     "bssxseg",  "stringseg", "constseg",
-                                     "tlsseg",  "startupxseg", "rundownxseg", "tlssuseg", "tlsrdseg",  "typeseg",
-                                     "symseg",  "browseseg",   "fixcseg",     "fixdseg",  "virtseg"
-
-    };
     switch (data->type)
     {
         case DT_NONE:
             break;
-        case DT_SEG:
-            nl();
-            oprintf(icdFile, "segment %s", segs[data->i].c_str());
-            nl();
-            break;
-        case DT_SEGEXIT:
-            nl();
-            oprintf(icdFile, "segment end %s", segs[data->i].c_str());
-            nl();
-            break;
         case DT_DEFINITION:
+#if 0
             if (!data->symbol.sym->isinternal)
             {
                 nl();
@@ -1259,26 +1232,26 @@ static void PutData(BaseData* data)
             }
             oprintf(icdFile, "%s:", data->symbol.sym->outputName);
             nl();
+#endif
             break;
         case DT_LABELDEFINITION:
-            nl();
             oprintf(icdFile, "L_%d:", data->i);
             nl();
             break;
         case DT_RESERVE:
-            oprintf(icdFile, "\treserve %d", data->i);
+            oprintf(icdFile, "  reserve %d", data->i);
             nl();
             break;
         case DT_SYM:
-            oprintf(icdFile, "\tDC.A %s+%d", data->symbol.sym->outputName, data->symbol.sym->i);
+            oprintf(icdFile, "  DC.A %s+%d", data->symbol.sym->outputName, data->symbol.sym->i);
             nl();
             break;
         case DT_SRREF:
-            oprintf(icdFile, "\tDC.A\t%s,%d", data->symbol.sym->outputName, data->symbol.i);
+            oprintf(icdFile, "  DC.A  %s,%d", data->symbol.sym->outputName, data->symbol.i);
             nl();
             break;
         case DT_PCREF:
-            oprintf(icdFile, "\tDC.A %s", data->symbol.sym->outputName);
+            oprintf(icdFile, "  DC.A %s", data->symbol.sym->outputName);
             nl();
             break;
         case DT_FUNCREF:
@@ -1286,22 +1259,21 @@ static void PutData(BaseData* data)
             {
                 if (data->symbol.i & BaseData::DF_GLOBAL)
                 {
-                    oprintf(icdFile, "\nglobal %s", data->symbol.sym->outputName);
-                    nl();
+                    oprintf(icdFile, ".code %s\n", data->symbol.sym->outputName);
                 }
                 if (data->symbol.i & BaseData::DF_EXPORT)
                 {
-                    oprintf(icdFile, "\nexport %s", data->symbol.sym->outputName);
-                    nl();
+                    //oprintf(icdFile, "\nexport %s", data->symbol.sym->outputName);
+                    //nl();
                 }
             }
             break;
         case DT_LABEL:
-            oprintf(icdFile, "\tDC.A L_%d", data->i);
+            oprintf(icdFile, "  DC.A L_%d", data->i);
             nl();
             break;
         case DT_LABDIFFREF:
-            oprintf(icdFile, "\tDC.I L_%d-L_%d", data->diff.l1, data->diff.l2);
+            oprintf(icdFile, "  DC.I L_%d-L_%d", data->diff.l1, data->diff.l2);
             nl();
             break;
         case DT_STRING: {
@@ -1313,8 +1285,7 @@ static void PutData(BaseData* data)
                     if (!instring)
                     {
                         instring = true;
-                        nl();
-                        oprintf(icdFile, "\tDC.B \"");
+                        oprintf(icdFile, "  DC.B \"");
                     }
                     oputc(data->astring.str[i], icdFile);
                 }
@@ -1324,9 +1295,8 @@ static void PutData(BaseData* data)
                     {
                         instring = false;
                         oputc('"', icdFile);
-                        nl();
                     }
-                    oprintf(icdFile, "\tDC.B 0x%x", data->astring.str[i]);
+                    oprintf(icdFile, "  DC.B 0x%x", data->astring.str[i]);
                     nl();
                 }
             }
@@ -1335,39 +1305,39 @@ static void PutData(BaseData* data)
         case DT_BIT:
             break;
         case DT_BOOL:
-            oprintf(icdFile, "\tDC.BOOL 0x%x", data->i);
+            oprintf(icdFile, "  DC.BOOL 0x%x", data->i);
             nl();
             break;
         case DT_BYTE:
-            oprintf(icdFile, "\tDC.B 0x%x", data->i);
+            oprintf(icdFile, "  DC.B 0x%x", data->i);
             nl();
             break;
         case DT_USHORT:
-            oprintf(icdFile, "\tDC.S 0x%x", data->i);
+            oprintf(icdFile, "  DC.S 0x%x", data->i);
             nl();
             break;
         case DT_UINT:
-            oprintf(icdFile, "\tDC.I 0x%x", data->i);
+            oprintf(icdFile, "  DC.I 0x%x", data->i);
             nl();
             break;
         case DT_ULONG:
-            oprintf(icdFile, "\tDC.L 0x%x", data->i);
+            oprintf(icdFile, "  DC.L 0x%x", data->i);
             nl();
             break;
         case DT_ULONGLONG:
-            oprintf(icdFile, "\tDC.LL 0x%x", data->i);
+            oprintf(icdFile, "  DC.LL 0x%x", data->i);
             nl();
             break;
         case DT_16:
-            oprintf(icdFile, "\tDC.16 0x%x", data->i);
+            oprintf(icdFile, "  DC.16 0x%x", data->i);
             nl();
             break;
         case DT_32:
-            oprintf(icdFile, "\tDC.32 0x%x", data->i);
+            oprintf(icdFile, "  DC.32 0x%x", data->i);
             nl();
             break;
         case DT_ENUM:
-            oprintf(icdFile, "\tDC.ENUM 0x%x", data->i);
+            oprintf(icdFile, "  DC.ENUM 0x%x", data->i);
             nl();
             break;
         case DT_FLOAT:
@@ -1389,17 +1359,16 @@ static void PutData(BaseData* data)
             PutComplex(".CLD", data->c.r, data->c.i);
             break;
         case DT_ADDRESS:
-            oprintf(icdFile, "\tDC.A 0x%x", data->i);
+            oprintf(icdFile, "  DC.A 0x%x", data->i);
             nl();
             break;
         case DT_VIRTUAL:
-            nl();
-            oprintf(icdFile, "\tvirtual %s", data->symbol.sym->outputName);
+            oprintf(icdFile, "  virtual %s", data->symbol.sym->outputName);
             virtualMode = data->symbol.i;
             nl();
             break;
         case DT_ENDVIRTUAL:
-            oprintf(icdFile, "\tvirtual end %s", data->symbol.sym->outputName);
+            oprintf(icdFile, "  virtual end %s", data->symbol.sym->outputName);
             if (virtualMode)
                 dseg();
             else
@@ -1407,34 +1376,29 @@ static void PutData(BaseData* data)
             nl();
             break;
         case DT_ALIGN:
-            nl();
-            oprintf(icdFile, "\t align %d", data->i);
+            oprintf(icdFile, "  .alignment %d", data->i);
             nl();
             break;
         case DT_VTT:
-            oprintf(icdFile, "\t[this] = [this] - %d\n", data->symbol.i);
-            oprintf(icdFile, "\tGOTO\t%s:PC", data->symbol.sym->outputName);
+            oprintf(icdFile, "  [this] = [this] - %d\n", data->symbol.i);
+            oprintf(icdFile, "  GOTO  %s:PC", data->symbol.sym->outputName);
             break;
         case DT_IMPORTTHUNK:
-            oprintf(icdFile, "\tGOTO [%s]\n", data->symbol.sym->outputName);
+            oprintf(icdFile, "  GOTO [%s]\n", data->symbol.sym->outputName);
             break;
         case DT_VC1:
-            oprintf(icdFile, "\tGOTO [[this] + %d]\n", data->symbol.i);
+            oprintf(icdFile, "  GOTO [[this] + %d]\n", data->symbol.i);
             break;
         case DT_AUTOREF:
-            oprintf(icdFile, "\tDC.I OFFSETOF %s + %d\n", data->symbol.sym->outputName, data->symbol.i);
+            oprintf(icdFile, "  DC.I OFFSETOF %s + %d\n", data->symbol.sym->outputName, data->symbol.i);
             break;
     }
 }
-const char* lookupRegName(int regnum)
-{
-    if (regnum < Optimizer::chosenAssembler->arch->registerCount)
-        return Optimizer::chosenAssembler->arch->regNames[regnum].name;
-    return "???";
-}
 
-void OutputIcdFile()
+void OutputEigenFile()
 {
+    //    strtab = nullptr;
+
     for (auto d : baseData)
     {
         if (d->type == DT_FUNC)
@@ -1449,7 +1413,7 @@ void OutputIcdFile()
     for (auto e : externals)
     {
         if (e)
-            oprintf(icdFile, "\textern %s\n", e->outputName);
+            oprintf(icdFile, "  extern %s\n", e->outputName);
     }
 }
 }  // namespace Optimizer
